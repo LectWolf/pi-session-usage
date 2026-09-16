@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_PACKAGE_BYTES = 50 * 1024 * 1024
-SKIP_DIRS = {".git", ".github", "dist", "node_modules", "scripts"}
+SKIP_DIRS = {".git", ".github", "dist", "docs", "node_modules", "scripts"}
 SKIP_FILES = {".gitignore", ".ds_store", "thumbs.db"}
 
 

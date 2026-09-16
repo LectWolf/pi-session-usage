@@ -2,6 +2,8 @@
 
 PI-Desktop 插件。输入框输入 **`/usage`**，或命令面板搜「用量」，查看**当前会话**的 token 用量。
 
+![会话用量面板](docs/panel.png)
+
 - 插件 id：`cc.mcii.session-usage`
 - 许可证：[GPL-3.0-only](./LICENSE)
 - 源码 / 主页：https://github.com/LectWolf/pi-session-usage
