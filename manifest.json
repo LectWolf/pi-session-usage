@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "id": "local.session-usage",
+  "id": "cc.mcii.session-usage",
   "name": "Session Usage",
-  "version": "0.1.6",
+  "version": "1.0.0",
   "description": "Show the current session's input, output, cache read/create and cache-hit rate via /usage.",
-  "changelog": "0.1.6: GitHub Actions packs the .piplug and publishes a Release when a v* tag is pushed.",
+  "changelog": "1.0.0: public release as cc.mcii.session-usage.",
   "i18n": {
     "en": {
       "name": "Session Usage",
