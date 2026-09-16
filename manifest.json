@@ -3,23 +3,28 @@
   "id": "cc.mcii.session-usage",
   "name": "Session Usage",
   "version": "1.0.0",
-  "description": "Show the current session's input, output, cache read/create and cache-hit rate via /usage.",
-  "changelog": "1.0.0: public release as cc.mcii.session-usage.",
+  "description": "Slash command /usage for the current session: uncached input, cache hit/create, output and hit rate.",
+  "license": "GPL-3.0-only",
+  "homepage": "https://github.com/LectWolf/pi-session-usage",
+  "repository": "https://github.com/LectWolf/pi-session-usage",
+  "author": "LectWolf",
+  "categories": ["productivity", "developer-tools"],
+  "changelog": "1.0.0 first public release\n- Add /usage for this session: uncached input, cache hit/create, output, reasoning and hit rate\n- Add a custom session picker with instant title search\n- Add Claude cache-create (5m / 1h) and a last-reply card\n- Refresh on window focus without wiping search or scroll",
+  "safetyNotes": "Reads only local PI-Desktop usage metadata. No network, no message text, no agent tools.",
   "i18n": {
     "en": {
       "name": "Session Usage",
-      "description": "Slash command /usage for the current session: input, output, cache hits, cache create and hit rate.",
-      "safetyNotes": "Reads only local PI-Desktop usage metadata (session jsonl usage fields and completed-turn tokens in pi.sqlite). Does not read message text, does not register agent tools, and never sends data off-device."
+      "description": "Slash command /usage for the current session: uncached input, cache hit/create, output and hit rate.",
+      "safetyNotes": "Reads only local PI-Desktop usage metadata (session jsonl usage fields and completed-turn tokens in pi.sqlite). Does not read message text, does not register agent tools, and never sends data off-device.",
+      "changelog": "1.0.0 first public release\n- Add /usage for this session: uncached input, cache hit/create, output, reasoning and hit rate\n- Add a custom session picker with instant title search\n- Add Claude cache-create (5m / 1h) and a last-reply card\n- Refresh on window focus without wiping search or scroll"
     },
     "zh-CN": {
       "name": "会话用量",
       "description": "在输入框输入 /usage，查看当前会话的输入、输出、缓存命中、缓存创建和命中率。",
-      "safetyNotes": "只读取本机 PI-Desktop 的用量元数据（会话 jsonl 的 usage 字段和 pi.sqlite 已完成回合的 token）。不读消息正文、不注册 Agent 工具、不联网。"
+      "safetyNotes": "只读取本机 PI-Desktop 的用量元数据（会话 jsonl 的 usage 字段和 pi.sqlite 已完成回合的 token）。不读消息正文、不注册 Agent 工具、不联网。",
+      "changelog": "1.0.0 首次公开发布\n- 新增 /usage：当前会话的输入、缓存命中/创建、输出、思考和命中率\n- 新增会话选择器，按标题即时搜索\n- 新增 Claude 缓存创建（5m / 1h）和最近一轮卡片\n- 窗口重新获得焦点时刷新，搜索和滚动位置会保留"
     }
   },
-  "author": "LectWolf",
-  "categories": ["productivity"],
-  "safetyNotes": "Reads only local PI-Desktop usage metadata. No network, no message text, no agent tools.",
   "main": "main.js",
   "ui": {
     "panel": "renderer/index.html",
