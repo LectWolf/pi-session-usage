@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="pi-plugin-chrome" content="v3" />
+    <title>Session Usage</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #181818;
+        --surface: #212121;
+        --fg: #f4f4f5;
+        --muted: color-mix(in oklab, #ffffff 52%, transparent);
+        --faint: color-mix(in oklab, #ffffff 38%, transparent);
+        --border: color-mix(in oklab, #ffffff 10%, transparent);
+        --hit: #86efac;
+        --create: #c4b5fd;
+        --think: #7dd3fc;
+        --warn: #fbbf24;
+        --capsule: 104px;
+        --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+      }
+      :root[data-base="light"] {
+        color-scheme: light;
+        --bg: #f7f7f8;
+        --surface: #ffffff;
+        --fg: #1a1c1f;
+        --muted: #5d5d5d;
+        --faint: #8a8a8a;
+        --border: color-mix(in oklab, #1a1c1f 10%, transparent);
+        --hit: #15803d;
+        --create: #6d28d9;
+        --think: #0369a1;
+        --warn: #b45309;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        overflow: hidden;
+        font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      .titlebar {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: var(--pi-plugin-titlebar-height, 46px);
+        padding: 0 12px;
+        padding-right: calc(var(--capsule) + 12px);
+        -webkit-app-region: drag;
+        border-bottom: 1px solid var(--border);
+        background: color-mix(in oklab, var(--bg) 88%, transparent);
+      }
+      .titlebar h1 {
+        margin: 0;
+        min-width: 0;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .titlebar .spacer { flex: 1; }
+      .icon-btn {
+        -webkit-app-region: no-drag;
+        appearance: none;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--surface);
+        color: var(--fg);
+        cursor: pointer;
+        transition: transform 160ms var(--ease-out);
+      }
+      .icon-btn:hover { filter: brightness(1.08); }
+      .icon-btn:active { transform: scale(0.97); }
+      .icon-btn:disabled { opacity: 0.5; cursor: default; }
+      .icon-btn.spin svg { animation: spin 0.8s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .scroller {
+        height: calc(100dvh - var(--pi-plugin-titlebar-height, 46px));
+        overflow: auto;
+        padding: 16px 16px 28px;
+      }
+      .lede { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+      .lede .meta { color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      .session-pick { position: relative; min-width: 0; }
+      .session-trigger {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+        color: var(--fg);
+        padding: 8px 12px;
+        font: inherit;
+        cursor: pointer;
+        text-align: left;
+        transition: transform 160ms var(--ease-out);
+      }
+      .session-trigger:hover { filter: brightness(1.06); }
+      .session-trigger:active { transform: scale(0.97); }
+      .session-trigger-text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 600;
+      }
+      .session-trigger svg {
+        flex: none;
+        color: var(--muted);
+        transition: transform 160ms var(--ease-out);
+      }
+      .session-pick.open .session-trigger svg { transform: rotate(180deg); }
+      .session-menu {
+        display: none;
+        position: absolute;
+        z-index: 5;
+        left: 0;
+        right: 0;
+        top: calc(100% + 6px);
+        max-height: 280px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+        box-shadow: 0 12px 32px color-mix(in oklab, #000 28%, transparent);
+        flex-direction: column;
+      }
+      .session-pick.open .session-menu { display: flex; }
+      .session-search {
+        flex: none;
+        padding: 8px 8px 4px;
+      }
+      .session-search input {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--fg);
+        padding: 7px 10px;
+        font: inherit;
+      }
+      .session-search input:focus { outline: 1px solid color-mix(in oklab, var(--think) 50%, transparent); }
+      .session-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        overflow: auto;
+        padding: 6px 6px 8px;
+        min-height: 0;
+      }
+      .session-option.is-hidden { display: none !important; }
+      .session-empty {
+        color: var(--muted);
+        padding: 12px 10px;
+        font-size: 12px;
+      }
+      .session-option {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--fg);
+        padding: 8px 10px;
+        font: inherit;
+        cursor: pointer;
+        text-align: left;
+      }
+      .session-option:hover { background: color-mix(in oklab, var(--fg) 6%, transparent); }
+      .session-option.selected { background: color-mix(in oklab, var(--hit) 12%, transparent); }
+      .session-option-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .session-option-meta { color: var(--muted); font-size: 11px; flex: none; }
+      .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        font-variant-numeric: tabular-nums;
+        border: 1px solid var(--border);
+      }
+      .badge.hit { color: var(--hit); background: color-mix(in oklab, var(--hit) 14%, transparent); }
+      .badge.create { color: var(--create); background: color-mix(in oklab, var(--create) 14%, transparent); }
+      .badge.think { color: var(--think); background: color-mix(in oklab, var(--think) 14%, transparent); }
+      .hit-hero {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+      .hit-hero .label { color: var(--muted); font-size: 12px; }
+      .hit-hero .value {
+        font-size: 28px;
+        font-weight: 640;
+        letter-spacing: -0.04em;
+        color: var(--hit);
+        font-variant-numeric: tabular-nums;
+      }
+      .hit-hero .sub { color: var(--muted); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+      .stat {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: var(--surface);
+      }
+      .stat .k { color: var(--muted); font-size: 11px; }
+      .stat .v {
+        margin-top: 4px;
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+        font-variant-numeric: tabular-nums;
+      }
+      .stat.hit .v { color: var(--hit); }
+      .stat.create .v { color: var(--create); }
+      .stat .s { margin-top: 3px; color: var(--faint); font-size: 11px; }
+      h2 {
+        margin: 18px 0 8px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .last-card, .model {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px 16px;
+        background: var(--surface);
+        margin-bottom: 8px;
+      }
+      .last-head, .model-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .last-name, .model-name {
+        font-weight: 600;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .last-meta, .model-sub {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+      .last-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 16px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+      }
+      .last-stat .k { color: var(--muted); font-size: 11px; }
+      .last-stat .v {
+        margin-top: 2px;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+        font-variant-numeric: tabular-nums;
+      }
+      .last-stat.hit .v { color: var(--hit); }
+      .last-stat.create .v { color: var(--create); }
+      .last-stat .s { margin-top: 2px; color: var(--faint); font-size: 11px; }
+      .error { color: var(--warn); }
+      .empty { color: var(--muted); padding: 24px 4px; }
+    </style>
+  </head>
+  <body>
+    <header class="titlebar">
+      <h1 id="heading">会话用量</h1>
+      <div class="spacer"></div>
+      <button type="button" class="icon-btn" id="refresh" aria-label="刷新" title="刷新">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-3-6.7" />
+          <polyline points="21 3 21 9 15 9" />
+        </svg>
+      </button>
+    </header>
+    <div class="scroller" id="root">
+      <p class="empty">正在读取…</p>
+    </div>
+    <script>
+      const zh = (locale) => String(locale || "").startsWith("zh");
+      const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      const applyAppearance = (appearance) => {
+        const base = appearance?.base;
+        document.documentElement.dataset.base =
+          base === "light" || base === "dark"
+            ? base
+            : window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+      };
+
+      const esc = (value) =>
+        String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+
+      const compact = (value) => {
+        const num = Number(value || 0);
+        if (!Number.isFinite(num) || num <= 0) return "0";
+        const trim = (n) => n.toFixed(3).replace(/\.?0+$/, "");
+        if (num >= 1_000_000) return `${trim(num / 1_000_000)}M`;
+        if (num >= 1_000) return `${trim(num / 1_000)}k`;
+        return String(Math.round(num));
+      };
+
+      const pct = (rate) => {
+        if (rate == null || !Number.isFinite(rate)) return null;
+        return `${(rate * 100).toFixed(1)}%`;
+      };
+
+      const duration = (ms) => {
+        const num = Number(ms);
+        if (!Number.isFinite(num) || num <= 0) return "";
+        if (num < 1000) return `${Math.round(num)}ms`;
+        return `${(num / 1000).toFixed(num >= 10_000 ? 0 : 1).replace(/\.0$/, "")}s`;
+      };
+
+      const clock = (iso, locale) => {
+        if (!iso) return "";
+        const date = new Date(iso);
+        if (Number.isNaN(date.getTime())) return "";
+        return date.toLocaleTimeString(zh(locale) ? "zh-CN" : "en-US", { hour: "2-digit", minute: "2-digit" });
+      };
+
+      const copy = (locale) =>
+        zh(locale)
+          ? {
+              title: "会话用量",
+              hit: "命中",
+              prompt: "提示词",
+              input: "输入",
+              cache: "缓存命中",
+              write: "缓存创建",
+              output: "输出",
+              reasoning: "思考",
+              total: "合计",
+              last: "最近一轮",
+              models: "按模型",
+              times: "次",
+              timesGap: "",
+              busy: "进行中",
+              compact: "压缩",
+              search: "搜索会话",
+              noMatch: "没有匹配的会话",
+              empty: "这个会话还没有带用量的助手回复。",
+              error: "读取失败",
+            }
+          : {
+              title: "Session usage",
+              hit: "Hit",
+              prompt: "Prompt",
+              input: "Input",
+              cache: "Cache hit",
+              write: "Cache create",
+              output: "Output",
+              reasoning: "Reasoning",
+              total: "Total",
+              last: "Last reply",
+              models: "By model",
+              times: "turns",
+              timesGap: " ",
+              busy: "busy",
+              compact: "compact",
+              search: "Search sessions",
+              noMatch: "No matching sessions",
+              empty: "This session has no assistant replies with usage yet.",
+              error: "Could not read usage",
+            };
+
+      const badge = (kind, text) =>
+        text ? `<span class="badge ${kind}">${esc(text)}</span>` : "";
+
+      const hitBadge = (tokens, t) => {
+        const hit = pct(tokens?.hitRate);
+        return badge("hit", hit ? `${t.hit} ${hit}` : "");
+      };
+
+      const num = (metric, value, kind = "n") =>
+        `<span class="num" data-metric="${metric}" data-kind="${kind}" data-shown="0">${kind === "pct" ? "—" : "0"}</span>`;
+
+      const stat = (k, metric, value, kind = "", sub = "") =>
+        `<div class="stat${kind ? ` ${kind}` : ""}"><div class="k">${k}</div><div class="v">${num(metric, value)}</div>${sub ? `<div class="s">${sub}</div>` : ""}</div>`;
+
+      const lastStat = (k, metric, value, kind = "", sub = "") =>
+        `<div class="last-stat${kind ? ` ${kind}` : ""}"><div class="k">${k}</div><div class="v">${num(metric, value)}</div>${sub ? `<div class="s">${sub}</div>` : ""}</div>`;
+
+      const timesLabel = (count, t) => `${count}${t.timesGap}${t.times}`;
+
+      const createSub = (tokens) => {
+        const five = Number(tokens?.cacheWrite5m || 0);
+        const hour = Number(tokens?.cacheWrite1h || 0);
+        if (five <= 0 && hour <= 0) return "";
+        return `5m ${compact(five)} · 1h ${compact(hour)}`;
+      };
+
+      let pickerOpen = false;
+      let pickerQuery = "";
+      let pickerScroll = 0;
+      const animators = new WeakMap();
+
+      const formatKind = (kind, value) => {
+        if (kind === "pct") return pct(value) || "—";
+        return compact(value);
+      };
+
+      function animateNode(node, target) {
+        if (!node) return;
+        const kind = node.dataset.kind || "n";
+        const next = Number(target);
+        const from = Number(node.dataset.shown || 0);
+        if (!Number.isFinite(next)) {
+          node.dataset.shown = "";
+          node.textContent = "—";
+          return;
+        }
+        if (reduceMotion() || from === next) {
+          node.dataset.shown = String(next);
+          node.textContent = formatKind(kind, next);
+          return;
+        }
+        const prev = animators.get(node);
+        if (prev) cancelAnimationFrame(prev);
+        const start = performance.now();
+        const duration = 620;
+        const step = (now) => {
+          const progress = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const value = from + (next - from) * eased;
+          node.dataset.shown = String(value);
+          node.textContent = formatKind(kind, value);
+          if (progress < 1) animators.set(node, requestAnimationFrame(step));
+          else {
+            node.dataset.shown = String(next);
+            node.textContent = formatKind(kind, next);
+            animators.delete(node);
+          }
+        };
+        animators.set(node, requestAnimationFrame(step));
+      }
+
+      function playNumbers(report, fromZero) {
+        const values = numberMap(report);
+        document.querySelectorAll(".num").forEach((node) => {
+          if (fromZero) node.dataset.shown = "0";
+          const target = values[node.dataset.metric];
+          animateNode(node, target);
+        });
+      }
+
+      function numberMap(report) {
+        const totals = report.totals || {};
+        const last = report.last?.tokens || {};
+        return {
+          "totals.hitRate": totals.hitRate,
+          "totals.prompt": totals.prompt,
+          "totals.input": totals.input,
+          "totals.cacheRead": totals.cacheRead,
+          "totals.cacheWrite": totals.cacheWrite,
+          "totals.output": totals.output,
+          "totals.reasoning": totals.reasoning,
+          "totals.total": totals.total,
+          "last.input": last.input,
+          "last.cacheRead": last.cacheRead,
+          "last.cacheWrite": last.cacheWrite,
+          "last.output": last.output,
+          "last.reasoning": last.reasoning,
+        };
+      }
+
+      function applySessionFilter() {
+        const q = pickerQuery.trim().toLowerCase();
+        const options = [...document.querySelectorAll(".session-option")];
+        let visible = 0;
+        for (const option of options) {
+          const title = (option.querySelector(".session-option-title")?.textContent || "").toLowerCase();
+          const show = !q || title.includes(q);
+          option.classList.toggle("is-hidden", !show);
+          option.hidden = !show;
+          if (show) visible += 1;
+        }
+        const empty = document.getElementById("session-empty");
+        if (empty) {
+          empty.hidden = visible > 0;
+          empty.classList.toggle("is-hidden", visible > 0);
+        }
+      }
+
+      window.__usageOnSearch = (el) => {
+        pickerQuery = el?.value || "";
+        applySessionFilter();
+      };
+
+      const sessionSelect = (report, t) => {
+        const rows = report.recentSessions || [];
+        if (!rows.length) return "";
+        const current = report.session?.id || "";
+        const currentRow = rows.find((row) => row.id === current) || rows[0];
+        const currentTitle = currentRow?.title || currentRow?.shortId || "";
+        return `<div class="session-pick${pickerOpen ? " open" : ""}" id="session-pick">
+          <button type="button" class="session-trigger" id="session-trigger" aria-haspopup="listbox" aria-expanded="${pickerOpen ? "true" : "false"}">
+            <span class="session-trigger-text">${esc(currentTitle)}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="session-menu" role="listbox">
+            <div class="session-search">
+              <input id="session-search" type="text" value="${esc(pickerQuery)}" placeholder="${esc(t.search)}" autocomplete="off" spellcheck="false" oninput="window.__usageOnSearch(this)" onkeyup="window.__usageOnSearch(this)" />
+            </div>
+            <div class="session-list" id="session-list">
+              ${rows
+                .map((row) => {
+                  const selected = row.id === current ? " selected" : "";
+                  const hay = `${row.title || ""} ${row.modelId || ""} ${row.shortId || ""} ${row.id || ""}`;
+                  const meta = row.running ? `<span class="badge think">${esc(t.busy)}</span>` : row.modelId ? `<span class="session-option-meta">${esc(row.modelId)}</span>` : "";
+                  return `<button type="button" class="session-option${selected}" role="option" data-session="${esc(row.id)}" data-hay="${esc(hay)}"><span class="session-option-title">${esc(row.title || row.shortId)}</span>${meta}</button>`;
+                })
+                .join("")}
+              <div class="session-empty" id="session-empty" hidden>${esc(t.noMatch)}</div>
+            </div>
+          </div>
+        </div>`;
+      };
+
+      function restorePicker() {
+        applySessionFilter();
+        const list = document.getElementById("session-list");
+        if (list) list.scrollTop = pickerScroll;
+        const search = document.getElementById("session-search");
+        if (!search) return;
+        if (!search.dataset.bound) {
+          search.dataset.bound = "1";
+          const run = () => window.__usageOnSearch(search);
+          search.addEventListener("input", run);
+          search.addEventListener("keyup", run);
+          search.addEventListener("compositionend", run);
+        }
+        if (pickerOpen) search.focus();
+      }
+
+      function canPatch(report) {
+        const view = document.getElementById("usage-view");
+        if (!view || !report?.ok) return false;
+        if (view.dataset.session !== (report.session?.id || "")) return false;
+        if (view.dataset.hasReplies !== (report.replies ? "1" : "0")) return false;
+        if (view.dataset.hasLast !== (report.last ? "1" : "0")) return false;
+        return true;
+      }
+
+      function patch(report) {
+        playNumbers(report, false);
+        const t = copy(report.locale);
+        const replies = document.querySelector("[data-metric='replies']");
+        if (replies) replies.textContent = timesLabel(report.replies, t);
+        const writeSub = document.querySelector("[data-sub='totals.cacheWrite']");
+        if (writeSub) writeSub.textContent = createSub(report.totals);
+        const lastWriteSub = document.querySelector("[data-sub='last.cacheWrite']");
+        if (lastWriteSub) lastWriteSub.textContent = createSub(report.last?.tokens);
+      }
+
+      function render(report, { fromZero = true } = {}) {
+        const locale = report?.locale || "zh-CN";
+        const t = copy(locale);
+        document.getElementById("heading").textContent = t.title;
+        const root = document.getElementById("root");
+        if (!report?.ok) {
+          root.innerHTML = `${sessionSelect(report || {}, t)}<p class="error">${esc(report?.error || t.error)}</p>`;
+          restorePicker();
+          return;
+        }
+        const totals = report.totals || {};
+        const session = report.session || {};
+        const last = report.last;
+        const models = report.byModel || [];
+        const think = session.thinkingLevel ? badge("think", session.thinkingLevel) : "";
+        const lastMeta = [duration(last?.durationMs), clock(last?.createdAt, locale)].filter(Boolean).join(" · ");
+        if (!report.replies) {
+          root.innerHTML = `<div id="usage-view" data-session="${esc(session.id || "")}" data-has-replies="0" data-has-last="0"><div class="lede"><strong>${esc(session.title || "")}</strong>${sessionSelect(report, t)}<div class="meta">${esc(session.modelId || "")} ${think}</div></div><p class="empty">${t.empty}</p></div>`;
+          restorePicker();
+          return;
+        }
+        root.innerHTML = `
+          <div id="usage-view" data-session="${esc(session.id || "")}" data-has-replies="1" data-has-last="${last ? "1" : "0"}">
+          <div class="lede">
+            <strong>${esc(session.title || "")}</strong>
+            ${sessionSelect(report, t)}
+            <div class="meta">
+              <span>${esc(session.modelId || "")}</span>
+              ${think}
+              <span data-metric="replies">${timesLabel(report.replies, t)}</span>
+              ${report.compactCount ? `<span>${t.compact} ${timesLabel(report.compactCount, t)}</span>` : ""}
+            </div>
+            <div class="badges">${hitBadge(totals, t)}${totals.cacheWrite ? badge("create", `${t.write} ${compact(totals.cacheWrite)}`) : ""}</div>
+          </div>
+          <div class="hit-hero">
+            <div>
+              <div class="label">${t.hit}</div>
+              <div class="value">${num("totals.hitRate", totals.hitRate, "pct")}</div>
+            </div>
+            <div class="sub">${t.prompt}<br />${num("totals.prompt", totals.prompt)}</div>
+          </div>
+          <div class="grid">
+            ${stat(t.input, "totals.input", totals.input)}
+            ${stat(t.cache, "totals.cacheRead", totals.cacheRead, "hit")}
+            ${stat(t.write, "totals.cacheWrite", totals.cacheWrite, "create", `<span data-sub="totals.cacheWrite">${createSub(totals)}</span>`)}
+            ${stat(t.output, "totals.output", totals.output)}
+            ${stat(t.reasoning, "totals.reasoning", totals.reasoning)}
+            ${stat(t.total, "totals.total", totals.total)}
+          </div>
+          ${
+            last
+              ? `<h2>${t.last}</h2>
+            <div class="last-card">
+              <div class="last-head">
+                <div>
+                  <div class="last-name">${esc(last.modelId || "")}</div>
+                  ${lastMeta ? `<div class="last-meta">${esc(lastMeta)}</div>` : ""}
+                </div>
+                <div class="badges">${hitBadge(last.tokens, t)}</div>
+              </div>
+              <div class="last-grid">
+                ${lastStat(t.input, "last.input", last.tokens.input)}
+                ${lastStat(t.cache, "last.cacheRead", last.tokens.cacheRead, "hit")}
+                ${lastStat(t.write, "last.cacheWrite", last.tokens.cacheWrite, "create", `<span data-sub="last.cacheWrite">${createSub(last.tokens)}</span>`)}
+                ${lastStat(t.output, "last.output", last.tokens.output)}
+                ${last.tokens.reasoning ? lastStat(t.reasoning, "last.reasoning", last.tokens.reasoning) : ""}
+              </div>
+            </div>`
+              : ""
+          }
+          ${
+            models.length
+              ? `<h2>${t.models}</h2>${models
+                  .map(
+                    (row) =>
+                      `<div class="model">
+                        <div class="model-top">
+                          <span class="model-name">${esc(row.modelId)}</span>
+                          <span class="badges">${badge("", timesLabel(row.replies, t))}${hitBadge(row.tokens, t)}</span>
+                        </div>
+                        <div class="model-sub">${compact(row.tokens.prompt)}${row.tokens.cacheWrite ? ` · ${t.write} ${compact(row.tokens.cacheWrite)}` : ""}</div>
+                      </div>`,
+                  )
+                  .join("")}`
+              : ""
+          }
+          </div>
+        `;
+        restorePicker();
+        playNumbers(report, fromZero);
+      }
+
+      async function readSettingsReport() {
+        const settings = await window.pluginBridge.invoke("plugin.getSettings");
+        return settings?.lastReport || { ok: false, locale: "zh-CN", error: "还没有用量数据。先关掉面板，在输入框运行 /usage。" };
+      }
+
+      async function load(refresh, sessionId) {
+        const list = document.getElementById("session-list");
+        if (list) pickerScroll = list.scrollTop;
+        let report = null;
+        if (refresh) {
+          try {
+            report = await window.pluginBridge.invoke("usage.refresh", sessionId ? { sessionId } : {});
+          } catch {
+            report = null;
+          }
+        }
+        if (!report) report = await readSettingsReport();
+        if (!sessionId && canPatch(report)) patch(report);
+        else render(report, { fromZero: Boolean(sessionId) || !document.getElementById("usage-view") });
+      }
+
+      window.pluginBridge?.on("appearance:changed", applyAppearance);
+      window.pluginBridge?.invoke("app.getAppearance").then(applyAppearance).catch(() => applyAppearance(null));
+
+      const closePicker = () => {
+        const list = document.getElementById("session-list");
+        if (list) pickerScroll = list.scrollTop;
+        pickerOpen = false;
+        const pick = document.getElementById("session-pick");
+        const trigger = document.getElementById("session-trigger");
+        pick?.classList.remove("open");
+        trigger?.setAttribute("aria-expanded", "false");
+      };
+
+      const togglePicker = () => {
+        pickerOpen = !pickerOpen;
+        const pick = document.getElementById("session-pick");
+        const trigger = document.getElementById("session-trigger");
+        pick?.classList.toggle("open", pickerOpen);
+        trigger?.setAttribute("aria-expanded", pickerOpen ? "true" : "false");
+        if (pickerOpen) {
+          restorePicker();
+          requestAnimationFrame(() => document.getElementById("session-search")?.focus());
+        }
+      };
+
+      document.addEventListener("click", (event) => {
+        if (event.target.closest("#session-search") || event.target.closest(".session-search")) return;
+        if (event.target.closest("#session-trigger")) {
+          event.preventDefault();
+          togglePicker();
+          return;
+        }
+        const option = event.target.closest("[data-session]");
+        if (option?.dataset.session) {
+          pickerOpen = false;
+          load(true, option.dataset.session).catch(() => {});
+          return;
+        }
+        if (pickerOpen && !event.target.closest("#session-pick")) closePicker();
+      });
+
+      document.addEventListener("input", (event) => {
+        if (event.target?.id !== "session-search") return;
+        pickerQuery = event.target.value;
+        applySessionFilter();
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && pickerOpen) {
+          event.preventDefault();
+          closePicker();
+        }
+      });
+
+      const refreshBtn = document.getElementById("refresh");
+      refreshBtn.addEventListener("click", async () => {
+        refreshBtn.disabled = true;
+        refreshBtn.classList.add("spin");
+        try {
+          await load(true);
+        } finally {
+          refreshBtn.disabled = false;
+          refreshBtn.classList.remove("spin");
+        }
+      });
+
+      window.addEventListener("focus", () => {
+        if (pickerOpen) return;
+        load(true).catch(() => {});
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden || pickerOpen) return;
+        load(true).catch(() => {});
+      });
+
+      load(false).catch((error) => {
+        document.getElementById("root").innerHTML = `<p class="error">${esc(error?.message || error)}</p>`;
+      });
+    </script>
+  </body>
+</html>

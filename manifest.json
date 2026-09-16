@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "local.session-usage",
+  "name": "Session Usage",
+  "version": "0.1.5",
+  "description": "Show the current session's input, output, cache read/create and cache-hit rate via /usage.",
+  "changelog": "0.1.5: first public GitHub release. Session picker with instant title search, Claude cache create (5m/1h), last-reply card, compact counts, and focus/visibility refresh that keeps search and scroll.",
+  "i18n": {
+    "en": {
+      "name": "Session Usage",
+      "description": "Slash command /usage for the current session: input, output, cache hits, cache create and hit rate.",
+      "safetyNotes": "Reads only local PI-Desktop usage metadata (session jsonl usage fields and completed-turn tokens in pi.sqlite). Does not read message text, does not register agent tools, and never sends data off-device."
+    },
+    "zh-CN": {
+      "name": "会话用量",
+      "description": "在输入框输入 /usage，查看当前会话的输入、输出、缓存命中、缓存创建和命中率。",
+      "safetyNotes": "只读取本机 PI-Desktop 的用量元数据（会话 jsonl 的 usage 字段和 pi.sqlite 已完成回合的 token）。不读消息正文、不注册 Agent 工具、不联网。"
+    }
+  },
+  "author": "LectWolf",
+  "categories": ["productivity"],
+  "safetyNotes": "Reads only local PI-Desktop usage metadata. No network, no message text, no agent tools.",
+  "main": "main.js",
+  "ui": {
+    "panel": "renderer/index.html",
+    "width": 560,
+    "height": 720,
+    "title": {
+      "en": "Session Usage",
+      "zh-CN": "会话用量"
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "id": "usage",
+        "title": "Usage: current session",
+        "keywords": [
+          "usage",
+          "token",
+          "tokens",
+          "cache",
+          "用量",
+          "缓存",
+          "命中"
+        ],
+        "category": "Session"
+      }
+    ]
+  },
+  "permissions": [
+    "ui.panel"
+  ],
+  "engines": {
+    "piDesktop": ">=0.2.0"
+  },
+  "activationEvents": [
+    "onCommand:usage",
+    "onStartup"
+  ]
+}
