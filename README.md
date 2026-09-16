@@ -6,7 +6,8 @@ PI-Desktop 插件。输入框输入 **`/usage`**，或命令面板搜「用量�
 
 - 插件 id：`cc.mcii.session-usage`
 - 许可证：[GPL-3.0-only](./LICENSE)
-- 源码 / 主页：https://github.com/LectWolf/pi-session-usage
+- 源码：https://github.com/LectWolf/pi-session-usage
+- 主页：https://plugins.aiuo.net/plugins/cc.mcii.session-usage
 
 ## 会显示什么
 

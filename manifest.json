@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "description": "Slash command /usage for the current session: uncached input, cache hit/create, output and hit rate.",
   "license": "GPL-3.0-only",
-  "homepage": "https://github.com/LectWolf/pi-session-usage",
+  "homepage": "https://plugins.aiuo.net/plugins/cc.mcii.session-usage",
   "repository": "https://github.com/LectWolf/pi-session-usage",
   "author": "LectWolf",
   "categories": ["productivity", "developer-tools"],
