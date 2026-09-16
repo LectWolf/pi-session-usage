@@ -18,7 +18,7 @@ PI-Desktop 插件：看**当前会话**的 token 用量。输入框输入 **`/us
 
 ## 安装
 
-1. 打开 [Releases](https://github.com/LectWolf/pi-session-usage/releases)，下载 `local.session-usage-0.1.5.piplug`
+1. 打开 [Releases](https://github.com/LectWolf/pi-session-usage/releases)，下载最新的 `local.session-usage-*.piplug`
 2. PI-Desktop → **插件** → **安装 .piplug**
 3. 确认权限：只需 `ui.panel`
 4. 输入框输入 `/usage` 回车
@@ -36,8 +36,17 @@ PI-Desktop 插件：看**当前会话**的 token 用量。输入框输入 **`/us
 ## 开发
 
 ```text
-PluginCheck  local.session-usage
-PluginPack   local.session-usage   → dist/local.session-usage-0.1.5.piplug
+python scripts/pack.py
+# → dist/local.session-usage-<version>.piplug
 ```
+
+发版：改 `manifest.json` 的 `version`，提交后打标签并推送。
+
+```text
+git tag v0.1.6
+git push origin v0.1.6
+```
+
+GitHub Actions 会核对 tag 与版本号、打 `.piplug`、创建 Release。
 
 需要 PI-Desktop ≥ 0.2.0。

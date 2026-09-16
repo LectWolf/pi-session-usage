@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check tag matches manifest version
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          version = json.load(open("manifest.json", encoding="utf-8"))["version"]
+          tag = os.environ["GITHUB_REF_NAME"]
+          expected = f"v{version}"
+          if tag != expected:
+              sys.exit(f"tag {tag} does not match manifest version {expected}")
+          print(f"tag {tag} matches manifest {version}")
+          PY
+
+      - name: Pack .piplug
+        run: python3 scripts/pack.py
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.piplug
+          generate_release_notes: true
+          body: |
+            PI-Desktop 插件安装包。
+
+            下载 `.piplug` 后：PI-Desktop → **插件** → **安装 .piplug**。权限只需 `ui.panel`。
