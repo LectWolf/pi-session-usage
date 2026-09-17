@@ -118,9 +118,20 @@ function closeQuietly(db) {
   }
 }
 
+function localeFromRaw(raw) {
+  const text = String(raw || "")
+    .trim()
+    .toLowerCase()
+    .replaceAll("_", "-");
+  if (!text) return "";
+  if (text === "zh" || text.startsWith("zh-") || text.includes("hans") || text.includes("chinese")) {
+    return "zh-CN";
+  }
+  return "en";
+}
+
 function localeOf(appearance, fallback) {
-  const raw = String(appearance?.language || appearance?.locale || fallback || "").toLowerCase();
-  return raw.startsWith("zh") ? "zh-CN" : "en";
+  return localeFromRaw(appearance?.language || appearance?.locale || fallback) || "zh-CN";
 }
 
 function isZh(locale) {
@@ -311,15 +322,23 @@ async function appearance() {
 }
 
 async function hostLocale(look) {
+  const candidates = [];
   try {
     if (typeof pi.app?.getLocale === "function") {
-      const locale = await pi.app.getLocale();
-      if (locale) return localeOf({ language: locale }, "en");
+      candidates.push(await pi.app.getLocale());
     }
   } catch {
     /* ignore */
   }
-  return localeOf(look, "zh-CN");
+  try {
+    const appearanceLook = look || (await appearance());
+    candidates.push(appearanceLook?.locale, appearanceLook?.language);
+  } catch {
+    /* ignore */
+  }
+  const mapped = candidates.map(localeFromRaw).filter(Boolean);
+  if (mapped.includes("zh-CN")) return "zh-CN";
+  return mapped[0] || "zh-CN";
 }
 
 async function buildReport(preferredId, options = {}) {
